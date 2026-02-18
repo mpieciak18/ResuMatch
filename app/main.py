@@ -1,6 +1,9 @@
 import json
+import logging
 import uuid
 from contextlib import asynccontextmanager
+
+logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -90,6 +93,7 @@ async def analyze(
     except ValueError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except Exception as exc:
+        logger.exception("Unexpected error during resume analysis")
         raise HTTPException(
             status_code=502,
             detail="Analysis failed due to an upstream error. Please try again.",

@@ -8,7 +8,7 @@ from .schemas import AnalysisResult
 
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta"
-    "/models/gemini-2.0-flash:generateContent"
+    "/models/gemini-2.5-flash:generateContent"
 )
 
 ANALYSIS_PROMPT = """\
@@ -86,7 +86,16 @@ async def analyze_resume(
             f"{GEMINI_URL}?key={api_key}",
             json=payload,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # Surface the actual Gemini API error message
+            try:
+                detail = exc.response.json()
+                msg = detail.get("error", {}).get("message", str(exc))
+            except Exception:
+                msg = str(exc)
+            raise ValueError(f"Gemini API error ({exc.response.status_code}): {msg}") from exc
 
     data = response.json()
 
