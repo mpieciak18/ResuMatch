@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Resume Analyzer — Rate Your Resume{% endblock %}
+
+{% block content %}
+<div
+  x-data="{
+    loading: false,
+    filename: '',
+    error: '',
+    init() {
+      const form = this.$refs.form;
+      form.addEventListener('htmx:beforeRequest', () => {
+        this.loading = true;
+        this.error = '';
+      });
+      form.addEventListener('htmx:responseError', (e) => {
+        this.loading = false;
+        try {
+          const data = JSON.parse(e.detail.xhr.responseText);
+          this.error = data.detail || 'Something went wrong. Please try again.';
+        } catch {
+          this.error = 'Something went wrong. Please try again.';
+        }
+      });
+    }
+  }"
+>
+
+  <!-- Page heading -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Rate Your Resume</h1>
+    <p class="mt-2 text-slate-500">
+      Upload your resume as a PDF and paste the job description below.
+      Gemini will score your match and explain what to improve.
+    </p>
+  </div>
+
+  <!-- Error banner -->
+  <div
+    x-show="error"
+    x-cloak
+    x-transition
+    class="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+  >
+    <svg class="mt-0.5 h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+    </svg>
+    <span x-text="error"></span>
+  </div>
+
+  <!-- Form -->
+  <form
+    x-ref="form"
+    hx-post="/analyze"
+    hx-encoding="multipart/form-data"
+    class="space-y-6"
+  >
+
+    <!-- Resume upload -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Resume <span class="text-red-500">*</span>
+      </label>
+
+      <div
+        class="relative rounded-xl border-2 border-dashed border-slate-300 bg-white transition-colors hover:border-indigo-400 hover:bg-indigo-50/30"
+        :class="filename ? 'border-indigo-400 bg-indigo-50/40' : ''"
+      >
+        <input
+          id="resume"
+          name="resume"
+          type="file"
+          accept=".pdf,application/pdf"
+          required
+          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          :disabled="loading"
+          @change="filename = $event.target.files[0]?.name || ''"
+        />
+
+        <div class="pointer-events-none flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
+          <template x-if="!filename">
+            <div class="flex flex-col items-center gap-2">
+              <svg class="h-10 w-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              <p class="text-sm text-slate-500">
+                <span class="font-medium text-indigo-600">Click to upload</span>
+                &nbsp;or drag &amp; drop
+              </p>
+              <p class="text-xs text-slate-400">PDF only &mdash; max 20 MB</p>
+            </div>
+          </template>
+          <template x-if="filename">
+            <div class="flex flex-col items-center gap-2">
+              <svg class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              <p class="text-sm font-medium text-indigo-700" x-text="filename"></p>
+              <p class="text-xs text-slate-400">Click to change file</p>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job description -->
+    <div>
+      <label for="job_description" class="block text-sm font-medium text-gray-700 mb-2">
+        Job Description <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="job_description"
+        name="job_description"
+        rows="12"
+        required
+        :disabled="loading"
+        placeholder="Paste the full job description here — include responsibilities, requirements, and any other relevant details for the best analysis..."
+        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-relaxed placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-colors resize-none"
+      ></textarea>
+    </div>
+
+    <!-- Submit -->
+    <button
+      type="submit"
+      :disabled="loading"
+      class="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+    >
+      <!-- Spinner (visible while loading) -->
+      <svg
+        x-show="loading"
+        x-cloak
+        class="h-4 w-4 animate-spin"
+        fill="none" viewBox="0 0 24 24"
+      >
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+
+      <span x-text="loading ? 'Analyzing your resume…' : 'Analyze Resume'">Analyze Resume</span>
+    </button>
+
+  </form>
+
+  <!-- Loading overlay hint -->
+  <p
+    x-show="loading"
+    x-cloak
+    x-transition
+    class="mt-4 text-center text-sm text-slate-400"
+  >
+    This typically takes 10–20 seconds. Please wait&hellip;
+  </p>
+
+</div>
+{% endblock %}
