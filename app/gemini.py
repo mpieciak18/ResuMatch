@@ -6,9 +6,10 @@ import httpx
 
 from .schemas import AnalysisResult
 
+_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta"
-    "/models/gemini-2.5-flash:generateContent"
+    f"https://generativelanguage.googleapis.com/v1beta"
+    f"/models/{_GEMINI_MODEL}:generateContent"
 )
 
 ANALYSIS_PROMPT = """\
