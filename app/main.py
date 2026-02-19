@@ -8,6 +8,8 @@ from datetime import date
 logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -18,8 +20,6 @@ from slowapi.util import get_remote_address
 from .database import Base, SessionLocal, engine
 from .gemini import analyze_resume
 from .models import Analysis
-
-load_dotenv()
 
 TEMPLATES_DIR = "app/templates"
 MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB (Gemini inline limit)
