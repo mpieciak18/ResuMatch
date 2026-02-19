@@ -78,7 +78,7 @@
           @change="filename = $event.target.files[0]?.name || ''"
         />
 
-        <div class="pointer-events-none flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
+        <div class="pointer-events-none flex flex-col items-center justify-center gap-2 p-6 text-center">
           <template x-if="!filename">
             <div class="flex flex-col items-center gap-2">
               <svg class="h-10 w-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -114,7 +114,7 @@
       <textarea
         id="job_description"
         name="job_description"
-        rows="12"
+        rows="8"
         required
         :disabled="loading"
         placeholder="Paste the full job description here — include responsibilities, requirements, and any other relevant details for the best analysis..."
@@ -154,6 +154,23 @@
   >
     This typically takes 10–20 seconds. Please wait&hellip;
   </p>
+
+  <!-- Buy Me a Coffee banner -->
+  <div class="mt-10 rounded-xl border border-slate-200 bg-white px-5 py-4 flex items-center gap-4">
+    <span class="text-2xl shrink-0" aria-hidden="true">&#9749;</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-medium text-gray-800">Enjoy ResuMatch?</p>
+      <p class="text-xs text-slate-500 mt-0.5">Support its development &mdash; buy me a coffee!</p>
+    </div>
+    <a
+      href="https://buymeacoffee.com/mark.p"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3.5 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors"
+    >
+      Donate
+    </a>
+  </div>
 
 </div>
 {% endblock %}

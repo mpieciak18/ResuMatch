@@ -197,4 +197,59 @@
   </button>
 </div>
 
+<!-- Buy Me a Coffee modal -->
+<div
+  x-data="{ showModal: false }"
+  x-init="setTimeout(() => showModal = true, 2000)"
+>
+  <!-- Backdrop -->
+  <div
+    x-show="showModal"
+    x-cloak
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-40 bg-black/40"
+    @click="showModal = false"
+  ></div>
+
+  <!-- Modal panel -->
+  <div
+    x-show="showModal"
+    x-cloak
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 scale-95"
+    x-transition:enter-end="opacity-100 scale-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100 scale-100"
+    x-transition:leave-end="opacity-0 scale-95"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  >
+    <div class="w-full max-w-sm rounded-2xl bg-white shadow-xl p-8 text-center" @click.outside="showModal = false">
+      <span class="text-5xl block mb-4" aria-hidden="true">&#9749;</span>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">Glad we could help!</h2>
+      <p class="text-sm text-slate-500 mb-6">
+        If ResuMatch helped you tailor your resume, consider buying me a coffee to keep it running.
+      </p>
+      <a
+        href="https://buymeacoffee.com/mark.p"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="block w-full rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-amber-950 hover:bg-amber-300 transition-colors mb-3"
+      >
+        Buy Me a Coffee
+      </a>
+      <button
+        @click="showModal = false"
+        class="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+      >
+        No thanks
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
