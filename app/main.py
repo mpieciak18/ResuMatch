@@ -12,6 +12,7 @@ load_dotenv()
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -62,8 +63,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Resume Analyzer", lifespan=lifespan)
+app = FastAPI(title="ResuMatch", lifespan=lifespan)
 app.state.limiter = limiter
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
