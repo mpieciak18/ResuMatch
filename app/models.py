@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import String, Integer, Text, DateTime
+from sqlalchemy import String, Integer, Text, DateTime, Date
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -23,3 +23,10 @@ class Analysis(Base):
     # Stored as JSON arrays
     strengths: Mapped[str] = mapped_column(Text)
     weaknesses: Mapped[str] = mapped_column(Text)
+
+
+class DailyUsage(Base):
+    __tablename__ = "daily_usage"
+
+    usage_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)

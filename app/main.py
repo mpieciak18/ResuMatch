@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 
 from .database import Base, SessionLocal, engine
 from .gemini import analyze_resume
-from .models import Analysis
+from .models import Analysis, DailyUsage
 
 TEMPLATES_DIR = "app/templates"
 MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB (Gemini inline limit)
@@ -31,25 +31,28 @@ DAILY_ANALYSIS_CAP = int(os.getenv("DAILY_ANALYSIS_CAP", "150"))
 
 limiter = Limiter(key_func=get_remote_address)
 
-# Global daily cap — simple in-memory counter (resets on restart / new day)
-_daily_counter: dict[str, int] = {"date": "", "count": 0}
 
-
-def _check_daily_cap():
+async def _check_daily_cap():
     """Raise 429 if the global daily analysis cap has been reached."""
-    today = date.today().isoformat()
-    if _daily_counter["date"] != today:
-        _daily_counter["date"] = today
-        _daily_counter["count"] = 0
-    if _daily_counter["count"] >= DAILY_ANALYSIS_CAP:
+    today = date.today()
+    async with SessionLocal() as session:
+        usage = await session.get(DailyUsage, today)
+    if usage and usage.count >= DAILY_ANALYSIS_CAP:
         raise HTTPException(
             status_code=429,
             detail="Daily analysis limit reached. Please try again tomorrow.",
         )
 
 
-def _increment_daily_counter():
-    _daily_counter["count"] += 1
+async def _increment_daily_counter():
+    today = date.today()
+    async with SessionLocal() as session:
+        usage = await session.get(DailyUsage, today)
+        if usage:
+            usage.count += 1
+        else:
+            session.add(DailyUsage(usage_date=today, count=1))
+        await session.commit()
 
 
 @asynccontextmanager
@@ -119,7 +122,7 @@ async def analyze(
     job_description: str = Form(...),
 ):
     # --- Check global daily cap ---
-    _check_daily_cap()
+    await _check_daily_cap()
 
     # --- Validate inputs ---
     if not resume.filename or not resume.filename.lower().endswith(".pdf"):
@@ -151,7 +154,7 @@ async def analyze(
             detail="Analysis failed due to an upstream error. Please try again.",
         ) from exc
 
-    _increment_daily_counter()
+    await _increment_daily_counter()
 
     # --- Persist to DB ---
     analysis_id = str(uuid.uuid4())
