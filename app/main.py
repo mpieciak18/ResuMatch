@@ -1,7 +1,9 @@
 import json
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +11,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from .database import Base, SessionLocal, engine
 from .gemini import analyze_resume
@@ -20,6 +25,32 @@ TEMPLATES_DIR = "app/templates"
 MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB (Gemini inline limit)
 MIN_JOB_DESC_CHARS = 50
 
+# --- Rate limiting ---
+RATE_LIMIT_PER_IP = os.getenv("RATE_LIMIT_PER_IP", "5/hour")
+DAILY_ANALYSIS_CAP = int(os.getenv("DAILY_ANALYSIS_CAP", "150"))
+
+limiter = Limiter(key_func=get_remote_address)
+
+# Global daily cap — simple in-memory counter (resets on restart / new day)
+_daily_counter: dict[str, int] = {"date": "", "count": 0}
+
+
+def _check_daily_cap():
+    """Raise 429 if the global daily analysis cap has been reached."""
+    today = date.today().isoformat()
+    if _daily_counter["date"] != today:
+        _daily_counter["date"] = today
+        _daily_counter["count"] = 0
+    if _daily_counter["count"] >= DAILY_ANALYSIS_CAP:
+        raise HTTPException(
+            status_code=429,
+            detail="Daily analysis limit reached. Please try again tomorrow.",
+        )
+
+
+def _increment_daily_counter():
+    _daily_counter["count"] += 1
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,12 +60,29 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Resume Analyzer", lifespan=lifespan)
+app.state.limiter = limiter
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 # ---------------------------------------------------------------------------
 # Exception handlers
 # ---------------------------------------------------------------------------
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    detail = "Rate limit exceeded. Please slow down and try again later."
+    if request.headers.get("HX-Request"):
+        return Response(
+            content=json.dumps({"detail": detail}),
+            status_code=429,
+            media_type="application/json",
+        )
+    return templates.TemplateResponse(
+        "error.html",
+        {"request": request, "detail": detail, "status_code": 429},
+        status_code=429,
+    )
 
 
 @app.exception_handler(HTTPException)
@@ -64,11 +112,15 @@ async def index(request: Request):
 
 
 @app.post("/analyze")
+@limiter.limit(RATE_LIMIT_PER_IP)
 async def analyze(
     request: Request,
     resume: UploadFile = File(...),
     job_description: str = Form(...),
 ):
+    # --- Check global daily cap ---
+    _check_daily_cap()
+
     # --- Validate inputs ---
     if not resume.filename or not resume.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
@@ -98,6 +150,8 @@ async def analyze(
             status_code=502,
             detail="Analysis failed due to an upstream error. Please try again.",
         ) from exc
+
+    _increment_daily_counter()
 
     # --- Persist to DB ---
     analysis_id = str(uuid.uuid4())
