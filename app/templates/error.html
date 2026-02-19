@@ -2,6 +2,8 @@
 
 {% block title %}Error {{ status_code }} — ResuMatch{% endblock %}
 
+{% block meta_robots %}<meta name="robots" content="noindex" />{% endblock %}
+
 {% block content %}
 <div class="flex flex-col items-center justify-center py-20 text-center">
   <svg class="h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

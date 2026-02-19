@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}ResuMatch{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <meta name="theme-color" content="#4f46e5" />
+
+  {% block meta_robots %}{% endblock %}
+
+  <!-- SEO meta -->
+  {% set default_description = "ResuMatch uses AI to score your resume against any job description. Upload your PDF, paste the listing, and get actionable feedback in seconds." %}
+  <meta name="description" content="{% block meta_description %}{{ default_description }}{% endblock %}" />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="ResuMatch" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="{% block og_title %}ResuMatch — AI Resume Scorer{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}{{ default_description }}{% endblock %}" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="{% block twitter_title %}ResuMatch — AI Resume Scorer{% endblock %}" />
+  <meta name="twitter:description" content="{% block twitter_description %}{{ default_description }}{% endblock %}" />
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>

@@ -2,6 +2,9 @@
 
 {% block title %}Resume Analysis — {{ analysis.score }}/100{% endblock %}
 
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow" />{% endblock %}
+{% block og_title %}Resume Analysis — ResuMatch{% endblock %}
+
 {% block content %}
 
 {# Determine score tier for colours #}
