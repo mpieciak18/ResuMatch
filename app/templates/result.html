@@ -91,6 +91,20 @@
       <p class="font-medium text-gray-800 truncate max-w-xs">{{ analysis.resume_filename }}</p>
     </div>
 
+    {% if analysis.job_url %}
+    <div>
+      <p class="text-sm text-slate-500">Job Listing</p>
+      <a
+        href="{{ analysis.job_url }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-medium text-indigo-600 hover:text-indigo-500 truncate max-w-xs block text-sm transition-colors"
+      >
+        {{ analysis.job_url | truncate(50) }}
+      </a>
+    </div>
+    {% endif %}
+
     <div>
       <p class="text-sm text-slate-500">Analyzed</p>
       <p class="font-medium text-gray-800">

@@ -21,6 +21,7 @@ from slowapi.util import get_remote_address
 from .database import Base, SessionLocal, engine
 from .gemini import analyze_resume
 from .models import Analysis, DailyUsage
+from .scraper import ScrapeError, scrape_job_listing
 
 TEMPLATES_DIR = "app/templates"
 MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB (Gemini inline limit)
@@ -121,20 +122,16 @@ async def index(request: Request):
 async def analyze(
     request: Request,
     resume: UploadFile = File(...),
-    job_description: str = Form(...),
+    job_description: str = Form(""),
+    job_url: str = Form(""),
+    input_mode: str = Form("paste"),
 ):
     # --- Check global daily cap ---
     await _check_daily_cap()
 
-    # --- Validate inputs ---
+    # --- Validate resume ---
     if not resume.filename or not resume.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
-
-    if len(job_description.strip()) < MIN_JOB_DESC_CHARS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Job description must be at least {MIN_JOB_DESC_CHARS} characters.",
-        )
 
     pdf_bytes = await resume.read()
 
@@ -144,9 +141,38 @@ async def analyze(
     if len(pdf_bytes) == 0:
         raise HTTPException(status_code=400, detail="Uploaded PDF is empty.")
 
+    # --- Validate & prepare job content based on input mode ---
+    from_url = input_mode == "url"
+    source_url = None
+
+    if from_url:
+        job_url = job_url.strip()
+        if not job_url:
+            raise HTTPException(status_code=400, detail="Please provide a job listing URL.")
+
+        try:
+            content_for_gemini = await scrape_job_listing(job_url)
+        except ScrapeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Unexpected error scraping URL: %s", job_url)
+            raise HTTPException(
+                status_code=400,
+                detail="Could not fetch content from the provided URL. Please paste the job description manually.",
+            ) from exc
+
+        source_url = job_url
+    else:
+        if len(job_description.strip()) < MIN_JOB_DESC_CHARS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Job description must be at least {MIN_JOB_DESC_CHARS} characters.",
+            )
+        content_for_gemini = job_description.strip()
+
     # --- Call Gemini ---
     try:
-        result = await analyze_resume(pdf_bytes, job_description.strip())
+        result = await analyze_resume(pdf_bytes, content_for_gemini, from_url=from_url)
     except ValueError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except Exception as exc:
@@ -164,7 +190,8 @@ async def analyze(
         analysis = Analysis(
             id=analysis_id,
             resume_filename=resume.filename,
-            job_description=job_description.strip(),
+            job_description=job_description.strip() if not from_url else "[Scraped from URL]",
+            job_url=source_url,
             score=result.score,
             summary=result.summary,
             strengths=json.dumps(result.strengths),

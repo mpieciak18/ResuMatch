@@ -8,6 +8,7 @@
     loading: false,
     filename: '',
     error: '',
+    inputMode: 'paste',
     init() {
       const form = this.$refs.form;
       form.addEventListener('htmx:beforeRequest', () => {
@@ -31,8 +32,8 @@
   <div class="mb-8">
     <h1 class="text-3xl font-bold text-gray-900">Rate Your Resume</h1>
     <p class="mt-2 text-slate-500">
-      Upload your resume as a PDF and paste the job description below.
-      Gemini will score your match and explain what to improve.
+      Upload your resume as a PDF and provide the job description &mdash;
+      paste it directly or provide a URL to the listing.
     </p>
   </div>
 
@@ -106,20 +107,67 @@
       </div>
     </div>
 
-    <!-- Job description -->
+    <!-- Job description / URL toggle -->
     <div>
-      <label for="job_description" class="block text-sm font-medium text-gray-700 mb-2">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
         Job Description <span class="text-red-500">*</span>
       </label>
-      <textarea
-        id="job_description"
-        name="job_description"
-        rows="8"
-        required
-        :disabled="loading"
-        placeholder="Paste the full job description here — include responsibilities, requirements, and any other relevant details for the best analysis..."
-        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-relaxed placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-colors resize-none"
-      ></textarea>
+
+      <!-- Toggle buttons -->
+      <div class="flex rounded-lg border border-slate-300 overflow-hidden mb-3 w-fit">
+        <button
+          type="button"
+          @click="inputMode = 'paste'"
+          :class="inputMode === 'paste'
+            ? 'bg-indigo-600 text-white'
+            : 'bg-white text-slate-600 hover:bg-slate-50'"
+          class="px-4 py-2 text-sm font-medium transition-colors"
+        >
+          Paste Text
+        </button>
+        <button
+          type="button"
+          @click="inputMode = 'url'"
+          :class="inputMode === 'url'
+            ? 'bg-indigo-600 text-white'
+            : 'bg-white text-slate-600 hover:bg-slate-50'"
+          class="px-4 py-2 text-sm font-medium transition-colors border-l border-slate-300"
+        >
+          From URL
+        </button>
+      </div>
+
+      <!-- Hidden field to tell backend which mode -->
+      <input type="hidden" name="input_mode" :value="inputMode" />
+
+      <!-- Paste mode: textarea -->
+      <div x-show="inputMode === 'paste'" x-transition>
+        <textarea
+          id="job_description"
+          name="job_description"
+          rows="8"
+          :required="inputMode === 'paste'"
+          :disabled="loading"
+          placeholder="Paste the full job description here — include responsibilities, requirements, and any other relevant details for the best analysis..."
+          class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-relaxed placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-colors resize-none"
+        ></textarea>
+      </div>
+
+      <!-- URL mode: url input -->
+      <div x-show="inputMode === 'url'" x-transition>
+        <input
+          type="url"
+          id="job_url"
+          name="job_url"
+          :required="inputMode === 'url'"
+          :disabled="loading"
+          placeholder="https://www.linkedin.com/jobs/view/..."
+          class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        />
+        <p class="mt-1.5 text-xs text-slate-400">
+          Paste a link to a job listing. We'll extract the description automatically.
+        </p>
+      </div>
     </div>
 
     <!-- Submit -->
@@ -140,7 +188,9 @@
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
 
-      <span x-text="loading ? 'Analyzing your resume…' : 'Analyze Resume'">Analyze Resume</span>
+      <span x-text="loading
+        ? (inputMode === 'url' ? 'Fetching &amp; analyzing…' : 'Analyzing your resume…')
+        : 'Analyze Resume'">Analyze Resume</span>
     </button>
 
   </form>

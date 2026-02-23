@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from typing import Optional
 
 from sqlalchemy import String, Integer, Text, DateTime, Date
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,6 +19,7 @@ class Analysis(Base):
     )
     resume_filename: Mapped[str] = mapped_column(String(255))
     job_description: Mapped[str] = mapped_column(Text)
+    job_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     score: Mapped[int] = mapped_column(Integer)
     summary: Mapped[str] = mapped_column(Text)
     # Stored as JSON arrays
